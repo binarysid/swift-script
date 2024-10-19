@@ -130,7 +130,7 @@ func gitRelease(version: String) {
 func syncGitMirror() {
     let fetchOriginCommand = ["fetch", "origin"]
     let pushMirrorCommand = ["push", "--mirror", "target"]
-    let mirrorDir = "/Volumes/DeepMind/Project/iOS/swift-script"
+    let mirrorDir = "/Volumes/DeepMind/Project/Client/Swift-script-test.git"
     runCommand(execPath: Command.git, arguments: fetchOriginCommand, workingDirectory: mirrorDir)
     runCommand(execPath: Command.git, arguments: pushMirrorCommand, workingDirectory: mirrorDir)
 
