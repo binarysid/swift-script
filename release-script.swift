@@ -57,36 +57,45 @@ func modifyVersionInPodspec(atPath path: String, key: String, newVersion: String
     }
 }
 
-func runGitCommand(command: String) {
-    print("executing command: \(command)")
+func runGitCommand(_ arguments: [String]) {
     let process = Process()
     let outputPipe = Pipe()
-    
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/git") // Path to the git executable
-    process.arguments = command.split(separator: " ").map(String.init) // Split the command into arguments
+    let errorPipe = Pipe()
+
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+    process.arguments = arguments
     process.standardOutput = outputPipe
-    process.standardError = outputPipe // Capture any error output as well
-    
+    process.standardError = errorPipe
+
     do {
-        try process.run() // Start the process
-        process.waitUntilExit() // Wait for it to finish
-        
-        let data = outputPipe.fileHandleForReading.readDataToEndOfFile() // Read the output
-        if let output = String(data: data, encoding: .utf8) {
-            print("result: \(output)") // Print the output
+        try process.run()
+        process.waitUntilExit()
+
+        let exitStatus = process.terminationStatus
+        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+
+        if exitStatus == 0 {
+            if let output = String(data: outputData, encoding: .utf8) {
+                print("Output: \(output)")
+            }
+        } else {
+            if let errorOutput = String(data: errorData, encoding: .utf8) {
+                print("Error: \(errorOutput)")
+            }
+            print("Error: Command failed with exit code \(exitStatus). Command: \(arguments.joined(separator: " "))")
         }
     } catch {
         print("Error running command: \(error.localizedDescription)")
     }
 }
 
-
 // Specify the file path and new version
 let podspecFilePath = "StarTrekAI.podspec"  // Update this path
-let newVersion = "1.0.2"  // Update the version here
+let newVersion = "1.0.3"  // Update the version here
 let key = "version"
 let commitMessage = "Release update to version \(newVersion)"
-// Call the function to modify the version
+let commitCommand = ["commit", "-m", commitMessage]
 modifyVersionInPodspec(atPath: podspecFilePath, key:key, newVersion: newVersion)
-runGitCommand(command: "add .") // Stage all files
-runGitCommand(command: "commit -m \"\(commitMessage)\"") // Ensure the entire message is quoted
+runGitCommand(["add", "."])
+runGitCommand(commitCommand)
