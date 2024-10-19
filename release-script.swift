@@ -6,6 +6,7 @@ enum Command {
     
     enum Argument {
         static let version = "--version"
+        static let mirrorDir = "--mirrorDir"
     }
 }
 
@@ -130,7 +131,11 @@ func gitRelease(version: String) {
 func syncGitMirror() {
     let fetchOriginCommand = ["fetch", "origin"]
     let pushMirrorCommand = ["push", "--mirror", "target"]
-    let mirrorDir = "/Volumes/DeepMind/Project/Client/Swift-script-test.git"
+    guard let mirrorDir = getCommandLineOption(Command.Argument.mirrorDir) else {
+        print("Usage: swift release-script.swift --mirrorDir=<mirrorDir>")
+        exit(1)
+    }
+
     runCommand(execPath: Command.git, arguments: fetchOriginCommand, workingDirectory: mirrorDir)
     runCommand(execPath: Command.git, arguments: pushMirrorCommand, workingDirectory: mirrorDir)
 
