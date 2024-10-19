@@ -92,10 +92,13 @@ func runGitCommand(_ arguments: [String]) {
 
 // Specify the file path and new version
 let podspecFilePath = "StarTrekAI.podspec"  // Update this path
-let newVersion = "1.0.3"  // Update the version here
+let version = "1.0.4"  // Update the version here
 let key = "version"
-let commitMessage = "Release update to version \(newVersion)"
+let commitMessage = "Release update to version \(version)"
 let commitCommand = ["commit", "-m", commitMessage]
-modifyVersionInPodspec(atPath: podspecFilePath, key:key, newVersion: newVersion)
+let tagCommand = ["tag", "-a", version]
+
+modifyVersionInPodspec(atPath: podspecFilePath, key:key, newVersion: version)
 runGitCommand(["add", "."])
 runGitCommand(commitCommand)
+runGitCommand(tagCommand)
