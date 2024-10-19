@@ -1,8 +1,21 @@
 import Foundation
 
 enum Command {
-    static let git = "/usr/bin/git"
-    static let bash = "/bin/bash"
+    case git, bash
+    
+    var path: String {
+        switch self {
+        case .git: return "/usr/bin/git"
+        case .bash: return "/bin/bash"
+        }
+    }
+    
+    var name: String {
+        switch self {
+        case .git: return "git"
+        case .bash: return "bash"
+        }
+    }
     
     enum Argument {
         static let version = "--version"
@@ -78,12 +91,12 @@ func modifyVersionInPodspec(atPath path: String, key: String, newVersion: String
     }
 }
 
-func runCommand(execPath: String, arguments: [String], workingDirectory: String? = nil) {
+func runCommand(command: Command, arguments: [String], workingDirectory: String? = nil) {
     let process = Process()
     let outputPipe = Pipe()
     let errorPipe = Pipe()
 
-    process.executableURL = URL(fileURLWithPath: execPath)
+    process.executableURL = URL(fileURLWithPath: command.path)
     process.arguments = arguments
     process.standardOutput = outputPipe
     process.standardError = errorPipe
@@ -94,7 +107,7 @@ func runCommand(execPath: String, arguments: [String], workingDirectory: String?
 
     do {
         try process.run()
-        print("Executing command: \(([execPath] + arguments).joined(separator: " "))")  // Print full command
+        print("Executing: \(([command.name] + arguments).joined(separator: " "))")
 
         process.waitUntilExit()
 
@@ -124,10 +137,10 @@ func gitRelease(version: String) {
     let createTag = ["tag", "-a", version, "-m", "Tagging version \(version)"]
     let pushCommitsWithTags = ["push", "--follow-tags"]
     
-    runCommand(execPath: Command.git, arguments: add)
-    runCommand(execPath: Command.git, arguments: commit)
-    runCommand(execPath: Command.git, arguments: createTag)
-    runCommand(execPath: Command.git, arguments: pushCommitsWithTags)
+    runCommand(command: .git, arguments: add)
+    runCommand(command: .git, arguments: commit)
+    runCommand(command: .git, arguments: createTag)
+    runCommand(command: .git, arguments: pushCommitsWithTags)
 }
 
 func syncGitMirror() {
@@ -138,8 +151,8 @@ func syncGitMirror() {
         exit(1)
     }
 
-    runCommand(execPath: Command.git, arguments: fetchOriginCommand, workingDirectory: mirrorDir)
-    runCommand(execPath: Command.git, arguments: pushMirrorCommand, workingDirectory: mirrorDir)
+    runCommand(command: .git, arguments: fetchOriginCommand, workingDirectory: mirrorDir)
+    runCommand(command: .git, arguments: pushMirrorCommand, workingDirectory: mirrorDir)
 
 }
 
@@ -150,15 +163,9 @@ guard let version = getCommandLineOption(Command.Argument.version) else {
 }
 
 // Specify the file path and new version
-let podspecFilePath = "StarTrekAI.podspec"  // Update this path
+let podspecFilePath = "StarTrekAI.podspec"
 let key = "version"
-//let dir = "/Volumes/DeepMind/Project/Client/StarTrekAI.git"
-//let dir = "/Volumes/DeepMind/Project/iOS/swift-script"
 
-//let navCommand = ["-c", "cd", dir]
-//let currentDir = ["-c", "pwd"]
-//runCommand(execPath: Command.bash, arguments: currentDir, workingDirectory: dir)
-//runCommand(execPath: Command.bash, arguments: currentDir)
 modifyVersionInPodspec(atPath: podspecFilePath, key:key, newVersion: version)
 gitRelease(version: version)
 syncGitMirror()
