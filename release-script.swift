@@ -9,6 +9,17 @@ enum Command {
     }
 }
 
+// Function to get the value of a command-line option
+func getCommandLineOption(_ option: String) -> String? {
+    for arg in CommandLine.arguments {
+        if arg.starts(with: option) {
+            let value = arg.replacingOccurrences(of: "\(option)=", with: "")
+            return value
+        }
+    }
+    return nil
+}
+
 // Function to modify the s.version in the file
 func modifyVersionInPodspec(atPath path: String, key: String, newVersion: String) {
     let fileManager = FileManager.default
@@ -66,63 +77,6 @@ func modifyVersionInPodspec(atPath path: String, key: String, newVersion: String
     }
 }
 
-
-func runGitCommand(_ arguments: [String]) {
-    let process = Process()
-    let outputPipe = Pipe()
-    let errorPipe = Pipe()
-
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-    process.arguments = arguments
-    process.standardOutput = outputPipe
-    process.standardError = errorPipe
-
-    do {
-        try process.run()
-        process.waitUntilExit()
-
-        let exitStatus = process.terminationStatus
-        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-
-        if exitStatus == 0 {
-            if let output = String(data: outputData, encoding: .utf8) {
-                print("Output: \(output)")
-            }
-        } else {
-            if let errorOutput = String(data: errorData, encoding: .utf8) {
-                print("Error: \(errorOutput)")
-            }
-            print("Error: Command failed with exit code \(exitStatus). Command: \(arguments.joined(separator: " "))")
-        }
-    } catch {
-        print("Error running command: \(error.localizedDescription)")
-    }
-}
-
-func executeGitCommands(version: String) {
-    let addCommand = ["add", "."]
-    let commitMessage = "Release update to version \(version)"
-    let commitCommand = ["commit", "-m", commitMessage]
-    let tagCommand = ["tag", "-a", version, "-m", "Tagging version \(version)"]
-    let pushCommitsAndTagsCommand = ["push", "--follow-tags"]
-    runCommand(execPath: Command.git, arguments: addCommand)
-    runCommand(execPath: Command.git, arguments: commitCommand)
-    runCommand(execPath: Command.git, arguments: tagCommand)
-    runCommand(execPath: Command.git, arguments: pushCommitsAndTagsCommand)
-}
-
-// Function to get the value of a command-line option
-func getCommandLineOption(_ option: String) -> String? {
-    for arg in CommandLine.arguments {
-        if arg.starts(with: option) {
-            let value = arg.replacingOccurrences(of: "\(option)=", with: "")
-            return value
-        }
-    }
-    return nil
-}
-
 func runCommand(execPath: String, arguments: [String], workingDirectory: String? = nil) {
     let process = Process()
     let outputPipe = Pipe()
@@ -160,6 +114,28 @@ func runCommand(execPath: String, arguments: [String], workingDirectory: String?
     }
 }
 
+func gitRelease(version: String) {
+    let add = ["add", "."]
+    let commitMessage = "Release update to version \(version)"
+    let commit = ["commit", "-m", commitMessage]
+    let createTag = ["tag", "-a", version, "-m", "Tagging version \(version)"]
+    let pushCommitsWithTags = ["push", "--follow-tags"]
+    
+    runCommand(execPath: Command.git, arguments: add)
+    runCommand(execPath: Command.git, arguments: commit)
+    runCommand(execPath: Command.git, arguments: createTag)
+    runCommand(execPath: Command.git, arguments: pushCommitsWithTags)
+}
+
+func syncGitMirror() {
+    let fetchOriginCommand = ["fetch", "origin"]
+    let pushMirrorCommand = ["push", "--mirror", "target"]
+    let mirrorDir = "/Volumes/DeepMind/Project/iOS/swift-script"
+    runCommand(execPath: Command.git, arguments: fetchOriginCommand, workingDirectory: mirrorDir)
+    runCommand(execPath: Command.git, arguments: pushMirrorCommand, workingDirectory: mirrorDir)
+
+}
+
 // Get the version from command-line arguments
 guard let version = getCommandLineOption(Command.Argument.version) else {
     print("Usage: swift release-script.swift --version=<version>")
@@ -169,10 +145,13 @@ guard let version = getCommandLineOption(Command.Argument.version) else {
 // Specify the file path and new version
 let podspecFilePath = "StarTrekAI.podspec"  // Update this path
 let key = "version"
-let dir = "/Volumes/DeepMind/Project/Client/StarTrekAI.git"
+//let dir = "/Volumes/DeepMind/Project/Client/StarTrekAI.git"
+//let dir = "/Volumes/DeepMind/Project/iOS/swift-script"
+
 //let navCommand = ["-c", "cd", dir]
-let currentDir = ["-c", "pwd"]
+//let currentDir = ["-c", "pwd"]
 //runCommand(execPath: Command.bash, arguments: currentDir, workingDirectory: dir)
 //runCommand(execPath: Command.bash, arguments: currentDir)
 modifyVersionInPodspec(atPath: podspecFilePath, key:key, newVersion: version)
-executeGitCommands(version: version)
+gitRelease(version: version)
+syncGitMirror()
