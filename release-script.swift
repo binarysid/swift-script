@@ -13,7 +13,7 @@ func modifyVersionInPodspec(atPath path: String, key: String, newVersion: String
     // Read the file contents
     do {
         let fileURL = URL(fileURLWithPath: path)
-        var fileContents = try String(contentsOf: fileURL, encoding: .utf8)
+        let fileContents = try String(contentsOf: fileURL, encoding: .utf8)
         
         // Split the file contents into lines
         var lines = fileContents.components(separatedBy: .newlines)
@@ -58,6 +58,7 @@ func modifyVersionInPodspec(atPath path: String, key: String, newVersion: String
 }
 
 func runGitCommand(command: String) {
+    print("executing command: \(command)")
     let process = Process()
     let outputPipe = Pipe()
     
@@ -72,19 +73,20 @@ func runGitCommand(command: String) {
         
         let data = outputPipe.fileHandleForReading.readDataToEndOfFile() // Read the output
         if let output = String(data: data, encoding: .utf8) {
-            print("Output: \(output)") // Print the output
+            print("result: \(output)") // Print the output
         }
     } catch {
         print("Error running command: \(error.localizedDescription)")
     }
 }
 
-runGitCommand(command: "add .") // Stage all files
-runGitCommand(command: "commit -m \"Release update to version \(version)\"") // Commit with message
 
 // Specify the file path and new version
 let podspecFilePath = "StarTrekAI.podspec"  // Update this path
 let newVersion = "1.0.2"  // Update the version here
 let key = "version"
+let commitMessage = "Release update to version \(newVersion)"
 // Call the function to modify the version
 modifyVersionInPodspec(atPath: podspecFilePath, key:key, newVersion: newVersion)
+runGitCommand(command: "add .") // Stage all files
+runGitCommand(command: "commit -m \"\(commitMessage)\"") // Ensure the entire message is quoted
