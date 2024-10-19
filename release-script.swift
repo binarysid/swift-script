@@ -1,5 +1,9 @@
 import Foundation
 
+enum CommandArgument {
+    static let version = "--version"
+}
+
 // Function to modify the s.version in the file
 func modifyVersionInPodspec(atPath path: String, key: String, newVersion: String) {
     let fileManager = FileManager.default
@@ -90,13 +94,6 @@ func runGitCommand(_ arguments: [String]) {
     }
 }
 
-// Specify the file path and new version
-let podspecFilePath = "StarTrekAI.podspec"  // Update this path
-let version = "1.0.7"  // Update the version here
-let key = "version"
-modifyVersionInPodspec(atPath: podspecFilePath, key:key, newVersion: version)
-executeGitCommands(version: version)
-
 func executeGitCommands(version: String) {
     let addCommand = ["add", "."]
     let commitMessage = "Release update to version \(version)"
@@ -108,3 +105,27 @@ func executeGitCommands(version: String) {
     runGitCommand(tagCommand)
     runGitCommand(pushCommitsAndTagsCommand)
 }
+
+// Function to get the value of a command-line option
+func getCommandLineOption(_ option: String) -> String? {
+    for arg in CommandLine.arguments {
+        if arg.starts(with: option) {
+            let value = arg.replacingOccurrences(of: "\(option)=", with: "")
+            return value
+        }
+    }
+    return nil
+}
+
+
+// Get the version from command-line arguments
+guard let version = getCommandLineOption(CommandArgument.version) else {
+    print("Usage: swift release-script.swift --version=<version>")
+    exit(1)
+}
+
+// Specify the file path and new version
+let podspecFilePath = "StarTrekAI.podspec"  // Update this path
+let key = "version"
+modifyVersionInPodspec(atPath: podspecFilePath, key:key, newVersion: version)
+executeGitCommands(version: version)
