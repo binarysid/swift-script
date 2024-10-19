@@ -7,7 +7,7 @@
 #
 
 Pod::Spec.new do |s|
-  version            = '1.0.6'
+  version            = '1.0.7'
   s.name             = 'StarTrekAI'
   s.version          = version
   s.summary          = 'A short description of StarTrekAI.'
