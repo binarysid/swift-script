@@ -1,7 +1,12 @@
 import Foundation
 
-enum CommandArgument {
-    static let version = "--version"
+enum Command {
+    static let git = "/usr/bin/git"
+    static let bash = "/bin/bash"
+    
+    enum Argument {
+        static let version = "--version"
+    }
 }
 
 // Function to modify the s.version in the file
@@ -61,6 +66,7 @@ func modifyVersionInPodspec(atPath path: String, key: String, newVersion: String
     }
 }
 
+
 func runGitCommand(_ arguments: [String]) {
     let process = Process()
     let outputPipe = Pipe()
@@ -100,10 +106,10 @@ func executeGitCommands(version: String) {
     let commitCommand = ["commit", "-m", commitMessage]
     let tagCommand = ["tag", "-a", version, "-m", "Tagging version \(version)"]
     let pushCommitsAndTagsCommand = ["push", "--follow-tags"]
-    runGitCommand(addCommand)
-    runGitCommand(commitCommand)
-    runGitCommand(tagCommand)
-    runGitCommand(pushCommitsAndTagsCommand)
+    runCommand(execPath: Command.git, arguments: addCommand)
+    runCommand(execPath: Command.git, arguments: commitCommand)
+    runCommand(execPath: Command.git, arguments: tagCommand)
+    runCommand(execPath: Command.git, arguments: pushCommitsAndTagsCommand)
 }
 
 // Function to get the value of a command-line option
@@ -117,9 +123,45 @@ func getCommandLineOption(_ option: String) -> String? {
     return nil
 }
 
+func runCommand(execPath: String, arguments: [String], workingDirectory: String? = nil) {
+    let process = Process()
+    let outputPipe = Pipe()
+    let errorPipe = Pipe()
+
+    process.executableURL = URL(fileURLWithPath: execPath)
+    process.arguments = arguments
+    process.standardOutput = outputPipe
+    process.standardError = errorPipe
+    
+    if let directory = workingDirectory {
+        process.currentDirectoryURL = URL(fileURLWithPath: directory)
+    }
+
+    do {
+        try process.run()
+        process.waitUntilExit()
+
+        let exitStatus = process.terminationStatus
+        let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+        let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+
+        if exitStatus == 0 {
+            if let output = String(data: outputData, encoding: .utf8) {
+                print("Output: \(output)")
+            }
+        } else {
+            if let errorOutput = String(data: errorData, encoding: .utf8) {
+                print("Error: \(errorOutput)")
+            }
+            print("Error: Command failed with exit code \(exitStatus). Command: \(arguments.joined(separator: " "))")
+        }
+    } catch {
+        print("Error running command: \(error.localizedDescription)")
+    }
+}
 
 // Get the version from command-line arguments
-guard let version = getCommandLineOption(CommandArgument.version) else {
+guard let version = getCommandLineOption(Command.Argument.version) else {
     print("Usage: swift release-script.swift --version=<version>")
     exit(1)
 }
@@ -127,5 +169,10 @@ guard let version = getCommandLineOption(CommandArgument.version) else {
 // Specify the file path and new version
 let podspecFilePath = "StarTrekAI.podspec"  // Update this path
 let key = "version"
+let dir = "/Volumes/DeepMind/Project/Client/StarTrekAI.git"
+//let navCommand = ["-c", "cd", dir]
+let currentDir = ["-c", "pwd"]
+//runCommand(execPath: Command.bash, arguments: currentDir, workingDirectory: dir)
+//runCommand(execPath: Command.bash, arguments: currentDir)
 modifyVersionInPodspec(atPath: podspecFilePath, key:key, newVersion: version)
 executeGitCommands(version: version)
