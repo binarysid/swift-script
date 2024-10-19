@@ -94,6 +94,8 @@ func runCommand(execPath: String, arguments: [String], workingDirectory: String?
 
     do {
         try process.run()
+        print("Executing command: \(([execPath] + arguments).joined(separator: " "))")  // Print full command
+
         process.waitUntilExit()
 
         let exitStatus = process.terminationStatus
