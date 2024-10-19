@@ -103,6 +103,7 @@ func runCommand(command: Command, arguments: [String], workingDirectory: String?
     
     if let directory = workingDirectory {
         process.currentDirectoryURL = URL(fileURLWithPath: directory)
+        print("Working directory changed to \(directory)")
     }
 
     do {
